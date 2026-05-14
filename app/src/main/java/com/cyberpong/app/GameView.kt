@@ -22,7 +22,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private val tX=FloatArray(12); private val tY=FloatArray(12); private val tL=FloatArray(12)
     private var tH=0; private var ballC=0f; private var ballI=false; private var ballS=false
 
-    private var pY=0f; private var aY=0f; private var pG=false; private var aM=false
+    private var padY=0f; private var aiY=0f; private var giant=false; private var mini=false
     private var puA=false; private var puT=0; private var puX=0f; private var puY=0f; private var puR=0f
     private var cuPU=-1; private var cuTimer=0f; private var spawnPU=0L
 
@@ -62,8 +62,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private fun rcalc(w:Float,hh:Float){W=w;H=hh;s=min(w/800f,hh/500f)
         pw=max(8f,12f*s);ph=max(50f,100f*s);br=max(5f,9f*s);pm=max(15f,30f*s);sb=max(3f,6f*s);puR=max(14f,22f*s)}
 
-    private fun start(){state=1;pScore=0;aScore=0;diff=0f;rTime=0f;pY=H/2f;aY=H/2f
-        bx=W/2f;by=H/2f;bvx=0f;bvy=0f;tH=0;pCnt=0;pG=false;aM=false;ballC=0f;ballI=false;ballS=false
+    private fun start(){state=1;pScore=0;aScore=0;diff=0f;rTime=0f;padY=H/2f;aiY=H/2f
+        bx=W/2f;by=H/2f;bvx=0f;bvy=0f;tH=0;pCnt=0;giant=false;mini=false;ballC=0f;ballI=false;ballS=false
         puA=false;cuPU=-1;spawnPU=SystemClock.elapsedRealtime()+8000+(Math.random()*4000).toLong();bg(true)}
 
     private fun serve(){state=2;val d=if(Math.random()>0.5)1f else-1f;val a=(Math.random().toFloat()-0.5f)*0.8f;val sp=sb*1.2f
@@ -77,8 +77,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private fun spawnP(col:IntArray,cnt:Int,sm:Float){
         val n=min(cnt,80-pCnt)
         for(i in 0 until n){val a=Math.random().toDouble()*PI*2.0;val sp=(Math.random().toFloat()*4f*s+1f*s)*sm
-            pX[pCnt]=bx;pY[pCnt]=by;pvX[pCnt]=(cos(a)*sp).toFloat();pvY[pCnt]=(sin(a)*sp).toFloat();pL[pCnt]=1f;pD[pCnt]=0.012f+Math.random().toFloat()*0.02f
-            pR[pCnt]=col[0];pG[pCnt]=col[1];pB[pCnt]=col[2];pRad[pCnt]=Math.random().toFloat()*3f*s+1f*s;pCnt++}}
+            arrX[pCnt]=bx;arrY[pCnt]=by;arrVX[pCnt]=(cos(a)*sp).toFloat();arrVY[pCnt]=(sin(a)*sp).toFloat();arrL[pCnt]=1f;arrD[pCnt]=0.012f+Math.random().toFloat()*0.02f
+            arrCR[pCnt]=col[0];arrCG[pCnt]=col[1];arrCB[pCnt]=col[2];arrRad[pCnt]=Math.random().toFloat()*3f*s+1f*s;pCnt++}}
 
     private fun genTone(f:Float,d:Float,v:Float):ShortArray{
         val n=(sr*d).toInt();val b=ShortArray(n)
@@ -111,15 +111,15 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private fun update(dt:Float){
         if(state!=2&&state!=3)return
         if(state==3){apTimer-=dt
-            if(apTimer<=0f){state=1;pY=H/2f;aY=H/2f;bx=W/2f;by=H/2f;bvx=0f;bvy=0f;tH=0
-                pG=false;aM=false;ballC=0f;ballI=false;ballS=false;cuPU=-1
+            if(apTimer<=0f){state=1;padY=H/2f;aiY=H/2f;bx=W/2f;by=H/2f;bvx=0f;bvy=0f;tH=0
+                giant=false;mini=false;ballC=0f;ballI=false;ballS=false;cuPU=-1
                 spawnPU=SystemClock.elapsedRealtime()+6000+(Math.random()*4000).toLong()};return}
         rTime+=dt;diff=min(90f,(rTime/10f)*18f)
         if(!puA&&cuPU<0&&SystemClock.elapsedRealtime()>spawnPU){puT=(Math.random()*puN.size).toInt()
             puX=W/2f+((Math.random().toFloat()-0.5f)*W*0.35f);puY=H/2f+((Math.random().toFloat()-0.5f)*H*0.25f);puA=true
             spawnPU=SystemClock.elapsedRealtime()+8000+(Math.random()*4000).toLong()}
         if(cuPU>=0){cuTimer-=dt
-            if(cuTimer<=0f){when(cuPU){1->pG=false;2->aM=false;3->ballS=false;4->ballI=false;0->ballC=0f};cuPU=-1}}
+            if(cuTimer<=0f){when(cuPU){1->giant=false;2->mini=false;3->ballS=false;4->ballI=false;0->ballC=0f};cuPU=-1}}
         val sm=if(ballS)0.4f else 1f;bx+=bvx*sm;by+=bvy*sm
         if(ballC!=0f)by+=ballC*0.15f*s*sm
         tX[tH%12]=bx;tY[tH%12]=by;tL[tH%12]=1f;tH++
@@ -129,30 +129,30 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             if(dx*dx+dy*dy<(br+puR).pow(2)){puA=false;ppu();cuPU=puT;cuTimer=5f
                 val col=intArrayOf(255,255,0);spawnP(col,10,2f)
                 val sd=if(bvx>0f)1 else 0
-                when(puT){0->if(sd==0)ballC=if(Math.random()>0.5)1f else-1f;1->if(sd==0)pG=true;2->if(sd==1)aM=true;3->if(sd==0)ballS=true;4->if(sd==0)ballI=true}}}
-        val pph=if(pG)ph*2f else ph
-        if(bx-pm-pw/2f<=br&&bx+br>=pm-pw/2f&&by+br>pY-pph/2f&&by-br<pY+pph/2f&&bvx<0f){
-            val hp=(by-pY)/(pph/2f);val ang=hp*PI/3.0;val spd=sqrt((bvx*bvx+bvy*bvy).toDouble()).toFloat()*1.03f
+                when(puT){0->if(sd==0)ballC=if(Math.random()>0.5)1f else-1f;1->if(sd==0)giant=true;2->if(sd==1)mini=true;3->if(sd==0)ballS=true;4->if(sd==0)ballI=true}}}
+        val pph=if(giant)ph*2f else ph
+        if(bx-pm-pw/2f<=br&&bx+br>=pm-pw/2f&&by+br>padY-pph/2f&&by-br<padY+pph/2f&&bvx<0f){
+            val hp=(by-padY)/(pph/2f);val ang=hp*PI/3.0;val spd=sqrt((bvx*bvx+bvy*bvy).toDouble()).toFloat()*1.03f
             bvx=cos(ang).toFloat()*spd;bvy=sin(ang).toFloat()*spd;bx=pm+pw/2f+br+1f;ballC=0f;ph(0)
             val col=intArrayOf(0,255,204);spawnP(col,6,2f)}
-        val aah=if(aM)ph*0.5f else ph
-        if(bx+br>=W.toFloat()-pm-pw/2f&&bx-br<=W.toFloat()-pm+pw/2f&&by+br>aY-aah/2f&&by-br<aY+aah/2f&&bvx>0f){
-            val hp=(by-aY)/(aah/2f);val ang=hp*PI/3.0;val spd=sqrt((bvx*bvx+bvy*bvy).toDouble()).toFloat()*1.03f
+        val aah=if(mini)ph*0.5f else ph
+        if(bx+br>=W.toFloat()-pm-pw/2f&&bx-br<=W.toFloat()-pm+pw/2f&&by+br>aiY-aah/2f&&by-br<aiY+aah/2f&&bvx>0f){
+            val hp=(by-aiY)/(aah/2f);val ang=hp*PI/3.0;val spd=sqrt((bvx*bvx+bvy*bvy).toDouble()).toFloat()*1.03f
             bvx=-cos(ang).toFloat()*spd;bvy=sin(ang).toFloat()*spd;bx=W.toFloat()-pm-pw/2f-br-1f;ph(1)
             val col=intArrayOf(255,51,102);spawnP(col,6,2f)}
         if(bx-br<0f){aScore++;pls();ap(aScore>=win)}
         if(bx+br>W){pScore++;pls();ap(pScore>=win)}
         val at=if(bvx>0f) by+((Math.random().toFloat()-0.5f)*max(0.1f,1f-diff/100f)*H*0.15f)
             else H/2f+((Math.random().toFloat()-0.5f)*H*0.1f)
-        val asp=max(2f,5f+diff/10f)*s;val dd=at-aY
+        val asp=max(2f,5f+diff/10f)*s;val dd=at-aiY
         if(abs(dd)>3f)aY+=sign(dd)*min(abs(dd),asp)
         aY=max(aah/2f,min(H.toFloat()-aah/2f,aY))
-        val psp=max(3f,8f*s);val pd=touchY-pY
+        val psp=max(3f,8f*s);val pd=touchY-padY
         if(abs(pd)>2f)pY+=sign(pd)*min(abs(pd),psp)
         pY=max(pph/2f,min(H.toFloat()-pph/2f,pY))
-        var pi=0;while(pi<pCnt){pX[pi]+=pvX[pi];pY[pi]+=pvY[pi];pL[pi]-=pD[pi]
-            if(pL[pi]<=0f){pCnt--;if(pi<pCnt){val li=pCnt;pX[pi]=pX[li];pY[pi]=pY[li];pvX[pi]=pvX[li];pvY[pi]=pvY[li]
-                    pL[pi]=pL[li];pD[pi]=pD[li];pR[pi]=pR[li];pG[pi]=pG[li];pB[pi]=pB[li];pRad[pi]=pRad[li]}}else pi++}
+        var pi=0;while(pi<pCnt){arrX[pi]+=arrVX[pi];arrY[pi]+=arrVY[pi];arrL[pi]-=arrD[pi]
+            if(arrL[pi]<=0f){pCnt--;if(pi<pCnt){val li=pCnt;arrX[pi]=pX[li];arrY[pi]=pY[li];arrVX[pi]=pvX[li];arrVY[pi]=pvY[li]
+                    arrL[pi]=pL[li];arrD[pi]=pD[li];arrCR[pi]=pR[li];arrCG[pi]=pG[li];arrCB[pi]=pB[li];arrRad[pi]=pRad[li]}}else pi++}
         // Decay trail
         for(i in 0 until min(tH,12))tL[i]*=0.92f
     }
@@ -183,14 +183,14 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             paint.color=Color.WHITE;c.drawCircle(bx,by,br*0.8f,paint)
         }
         // Paddles
-        val pph=if(pG)ph*2f else ph;val aah=if(aM)ph*0.5f else ph
-        nrRect(c,pm-pw/2f,pY-pph/2f,pw,pph,Color.rgb(0,200,160))
-        nrRect(c,W-pm-pw/2f,aY-aah/2f,pw,aah,Color.rgb(200,40,80))
+        val pph=if(giant)ph*2f else ph;val aah=if(mini)ph*0.5f else ph
+        nrRect(c,pm-pw/2f,padY-pph/2f,pw,pph,Color.rgb(0,200,160))
+        nrRect(c,W-pm-pw/2f,aiY-aah/2f,pw,aah,Color.rgb(200,40,80))
         // Particles
         for(pi in 0 until pCnt){
-            val al=(max(0f,pL[pi])*200f).toInt().coerceIn(0,200)
-            paint.alpha=al;paint.color=Color.rgb(pR[pi],pG[pi],pB[pi])
-            c.drawCircle(pX[pi],pY[pi],pRad[pi],paint)}
+            val al=(max(0f,arrL[pi])*200f).toInt().coerceIn(0,200)
+            paint.alpha=al;paint.color=Color.rgb(arrCR[pi],arrCG[pi],arrCB[pi])
+            c.drawCircle(arrX[pi],arrY[pi],arrRad[pi],paint)}
         paint.alpha=255
         // PU
         if(puA){val pl=1f+sin(SystemClock.elapsedRealtime()/200.0).toFloat()*0.15f
