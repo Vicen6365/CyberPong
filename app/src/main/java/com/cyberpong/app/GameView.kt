@@ -83,7 +83,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
     init {
         holder.addCallback(this)
-        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+
         isFocusable = true
         initSound()
 
@@ -366,10 +366,11 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
         // Ball glow
         if (!ballInvisible || state != 2) {
-            bgPaint.color = Color.argb(50, 180, 180, 255)
-            bgPaint.maskFilter = BlurMaskFilter(10f, BlurMaskFilter.Blur.NORMAL)
-            c.drawCircle(ball.x, ball.y, br * 1.3f, bgPaint)
-            bgPaint.color = Color.WHITE; bgPaint.maskFilter = null
+            bgPaint.color = Color.argb(25, 180, 180, 255)
+            c.drawCircle(ball.x, ball.y, br * 2.5f, bgPaint)
+            bgPaint.color = Color.argb(60, 255, 255, 255)
+            c.drawCircle(ball.x, ball.y, br * 1.5f, bgPaint)
+            bgPaint.color = Color.WHITE; bgPaint.alpha = 255
             c.drawCircle(ball.x, ball.y, br, bgPaint)
         }
 
@@ -383,19 +384,17 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         for (pi in 0 until pCount) {
             val a = (max(0f, pLife[pi]) * 200f).toInt().coerceIn(0, 200)
             bgPaint.alpha = a; bgPaint.color = pColor[pi]
-            bgPaint.maskFilter = if (pRad[pi] > 2f) glow4 else null
-            c.drawCircle(pX[pi], pY[pi], pRad[pi], bgPaint)
+            c.drawCircle(pX[pi], pY[pi], pRad[pi] * 1.5f, bgPaint)
         }
-        bgPaint.alpha = 255; bgPaint.maskFilter = null
+        bgPaint.alpha = 255
 
         // Power-up
         if (puActive) {
             val pulse = 1f + sin(SystemClock.elapsedRealtime() / 200f) * 0.15f
             val col = puCol(puType)
             val pr = puR * pulse; val pcx = puX; val pcy = puY
-            bgPaint.color = Color.argb(80, Color.red(col), Color.green(col), Color.blue(col))
-            bgPaint.maskFilter = BlurMaskFilter(14f, BlurMaskFilter.Blur.NORMAL)
-            c.drawCircle(pcx, pcy, pr * 1.2f, bgPaint); bgPaint.maskFilter = null
+            bgPaint.color = Color.argb(25, Color.red(col), Color.green(col), Color.blue(col))
+            c.drawCircle(pcx, pcy, pr * 2f, bgPaint)
             bgPaint.color = col; c.drawCircle(pcx, pcy, pr, bgPaint)
             drawPUIcon(c, pcx, pcy, pr * 0.5f, puType, col)
         }
@@ -438,10 +437,11 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             tp.textAlign = Paint.Align.CENTER
             c.drawText("TAP TO SERVE", W/2f, H/2f+80f, tp)
             ball.y = H/2f + sin(SystemClock.elapsedRealtime()/300f)*15f
-            bgPaint.maskFilter = BlurMaskFilter(10f, BlurMaskFilter.Blur.NORMAL)
-            bgPaint.color = Color.argb(50, 180, 180, 255)
-            c.drawCircle(W/2f, ball.y, br*1.3f, bgPaint)
-            bgPaint.color = Color.WHITE; bgPaint.maskFilter = null
+            bgPaint.color = Color.argb(25, 180, 180, 255)
+            c.drawCircle(W/2f, ball.y, br*2.5f, bgPaint)
+            bgPaint.color = Color.argb(60, 255, 255, 255)
+            c.drawCircle(W/2f, ball.y, br*1.5f, bgPaint)
+            bgPaint.color = Color.WHITE; bgPaint.alpha = 255
             c.drawCircle(W/2f, ball.y, br, bgPaint)
         }
 
@@ -475,19 +475,18 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         }
     }
 
-    // Reusable BlurMaskFilter instances
-    private val glow4 = BlurMaskFilter(4f, BlurMaskFilter.Blur.NORMAL)
-    private val glow6 = BlurMaskFilter(6f, BlurMaskFilter.Blur.NORMAL)
-    private val glow10 = BlurMaskFilter(10f, BlurMaskFilter.Blur.NORMAL)
-    private val glow14 = BlurMaskFilter(14f, BlurMaskFilter.Blur.NORMAL)
 
     private fun neonRect(c: Canvas, x: Float, y: Float, w: Float, h: Float, color: Int) {
         val r = min(w, h) * 0.2f
         rectF.set(x, y, x+w, y+h); path.rewind()
         path.addRoundRect(rectF, r, r, Path.Direction.CW)
-        bgPaint.color = color; bgPaint.maskFilter = glow6
+        bgPaint.color = Color.argb(25, Color.red(color), Color.green(color), Color.blue(color))
         c.drawPath(path, bgPaint)
-        bgPaint.maskFilter = null
+        // Outer glow
+        bgPaint.strokeWidth = 4f; bgPaint.style = Paint.Style.STROKE
+        bgPaint.color = Color.argb(15, Color.red(color), Color.green(color), Color.blue(color))
+        c.drawPath(path, bgPaint)
+        bgPaint.color = color; bgPaint.style = Paint.Style.FILL; bgPaint.strokeWidth = 1.5f
         bgPaint.color = Color.argb(70, Color.red(color), Color.green(color), Color.blue(color))
         bgPaint.strokeWidth = 1.5f; bgPaint.style = Paint.Style.STROKE
         c.drawPath(path, bgPaint)
