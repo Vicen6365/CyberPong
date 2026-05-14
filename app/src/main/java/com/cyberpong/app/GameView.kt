@@ -5,7 +5,6 @@ import android.graphics.*
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
-import android.media.SoundPool
 import android.os.Build
 import android.os.SystemClock
 import android.view.*
@@ -70,12 +69,9 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     @Volatile private var running = false
     private var loopThread: Thread? = null
 
-    // Sound - SoundPool for SFX (zero allocation per hit), AudioTrack for bg
-    private var soundPool: SoundPool? = null
-    private var sidHitPlayer = 0; private var sidHitAI = 0; private var sidHitWall = 0
-    private var sidScore = 0; private var sidWin1 = 0; private var sidWin2 = 0
-    private var sidWin3 = 0; private var sidWin4 = 0; private var sidPower1 = 0
-    private var sidPower2 = 0; private var sidPower3 = 0
+    // Sound - pooled AudioTrack for SFX, AudioTrack stream for bg
+    // Using AudioTrack pool for SFX
+    private val sfxBufs = mutableListOf<ShortArray>()
     @Volatile private var soundReady = false
     private var bgTrack: AudioTrack? = null; @Volatile private var bgRun = false
     private var bgThread: Thread? = null
@@ -105,63 +101,37 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         }
     }
 
+    private val sfxATs = arrayOfNulls<AudioTrack>(4)
     private fun initSound() {
         try {
-            soundPool = SoundPool.Builder().setMaxStreams(4)
-                .setAudioAttributes(AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_GAME)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()).build()
-            sidHitPlayer = loadTone(880f, 0.06f, 0.3f)
-            sidHitAI = loadTone(660f, 0.06f, 0.3f)
-            sidHitWall = loadTone(440f, 0.06f, 0.2f)
-            sidScore = loadTone(330f, 0.15f, 0.25f)
-            sidWin1 = loadTone(523f, 0.2f, 0.3f); sidWin2 = loadTone(659f, 0.2f, 0.3f)
-            sidWin3 = loadTone(784f, 0.2f, 0.3f); sidWin4 = loadTone(1047f, 0.25f, 0.35f)
-            sidPower1 = loadTone(1200f, 0.1f, 0.25f); sidPower2 = loadTone(1500f, 0.1f, 0.25f)
-            sidPower3 = loadTone(1800f, 0.1f, 0.25f)
+            val sr = 22050
+            for (i in 0..3) {
+                val bufSize = (sr * 0.3f).toInt() * 2
+                sfxATs[i] = AudioTrack.Builder()
+                    .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+                    .setAudioFormat(AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(sr).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
+                    .setBufferSizeInBytes(bufSize).build()
+            }
+            sfxBufs.addAll(listOf(
+                genTone(880f, 0.06f, 0.3f), genTone(660f, 0.06f, 0.3f), genTone(440f, 0.06f, 0.2f),
+                genTone(330f, 0.15f, 0.25f),
+                genTone(523f, 0.2f, 0.3f), genTone(659f, 0.2f, 0.3f), genTone(784f, 0.2f, 0.3f), genTone(1047f, 0.25f, 0.35f),
+                genTone(1200f, 0.1f, 0.25f), genTone(1500f, 0.1f, 0.25f), genTone(1800f, 0.1f, 0.25f)
+            ))
             soundReady = true
         } catch (_: Exception) {}
     }
 
-    private fun loadTone(freq: Float, dur: Float, vol: Float): Int {
-        val sr = 22050; val n = (sr * dur).toInt()
-        val buf = ByteArray(n * 2)
-        for (i in 0 until n) {
-            val t = i.toFloat()/sr; val e = exp(-4f*t/dur)
-            val phase = (freq * t) % 1f
-            val wave = if (phase < 0.5f) 4f*phase - 1f else 3f - 4f*phase
-            val s = (wave * Short.MAX_VALUE * vol * e).toInt()
-                .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
-            buf[i*2] = (s.toInt() and 0xFF).toByte()
-            buf[i*2+1] = (s.toInt() shr 8 and 0xFF).toByte()
-        }
-        return soundPool!!.load(buf, 0, buf.size, 1)
-    }
+    private data class SFX(val buf: ShortArray, val dur: Float)
+    private val sfxPool = mutableListOf<SFX>()
+    private var sfxNext = 0
 
-    private fun playHit(who: Int) {
-        if (!soundReady) return
-        when (who) { 0 -> soundPool?.play(sidHitPlayer, 0.5f, 0.5f, 0, 0, 1f)
-            1 -> soundPool?.play(sidHitAI, 0.5f, 0.5f, 0, 0, 1f)
-            else -> soundPool?.play(sidHitWall, 0.3f, 0.3f, 0, 0, 1f) }
-    }
-    private fun playScore() { if(soundReady) soundPool?.play(sidScore, 0.5f, 0.5f, 0, 0, 1f) }
-    private fun playWin() {
-        if(!soundReady) return
-        soundPool?.play(sidWin1, 0.5f, 0.5f, 0, 0, 1f)
-        Thread { try { Thread.sleep(120)
-            soundPool?.play(sidWin2, 0.5f, 0.5f, 0, 0, 1f); Thread.sleep(120)
-            soundPool?.play(sidWin3, 0.5f, 0.5f, 0, 0, 1f); Thread.sleep(120)
-            soundPool?.play(sidWin4, 0.5f, 0.5f, 0, 0, 1f)
-        } catch(_:Exception){} }.start()
-    }
-    private fun playPowerUp() {
-        if(!soundReady) return
-        soundPool?.play(sidPower1, 0.5f, 0.5f, 0, 0, 1f)
-        Thread { try { Thread.sleep(60)
-            soundPool?.play(sidPower2, 0.5f, 0.5f, 0, 0, 1f); Thread.sleep(60)
-            soundPool?.play(sidPower3, 0.5f, 0.5f, 0, 0, 1f)
-        } catch(_:Exception){} }.start()
-    }
+    private fun playHit(who: Int) { playBuf(sfxBufs[who], false) }
+    private fun playScore() { playBuf(sfxBufs[3], false) }
+    private fun playWin() { playBuf(sfxBufs[4], true); playBuf(sfxBufs[5], true); playBuf(sfxBufs[6], true); playBuf(sfxBufs[7], true) }
+    private fun playPowerUp() { playBuf(sfxBufs[8], true); playBuf(sfxBufs[9], true); playBuf(sfxBufs[10], true) }
 
     private fun recalc(w: Float, h: Float) {
         W = w; H = h
@@ -601,6 +571,33 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         PUType.GIANT->Color.rgb(57,255,20); PUType.MINI->Color.rgb(255,0,85)
         PUType.SLOWMO->Color.rgb(0,212,255); PUType.INVISIBLE->Color.rgb(170,102,255) }
 
+    // Play a pre-generated buffer on a pooled AudioTrack (non-blocking)
+    private fun genTone(freq: Float, dur: Float, vol: Float): ShortArray {
+        val sr = 22050; val n = (sr * dur).toInt(); val b = ShortArray(n)
+        for (i in 0 until n) {
+            val t = i.toFloat()/sr; val e = exp(-4f*t/dur)
+            val phase = (freq * t) % 1f
+            val wave = if (phase < 0.5f) 4f*phase - 1f else 3f - 4f*phase
+            b[i] = (wave * Short.MAX_VALUE * vol * e).toInt()
+                .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+        }
+        return b
+    }
+
+    private fun playBuf(buf: ShortArray, async: Boolean) {
+        if (!soundReady && async) return
+        if (!soundReady && !async) { soundReady = true }
+        if (sfxATs[0] == null) return
+        // Find a free track or use round-robin
+        val idx = (sfxNext++).toInt() and 3 // 0..3
+        try {
+            val at = sfxATs[idx] ?: return
+            at.stop(); at.flush()
+            at.write(buf, 0, buf.size)
+            at.play()
+        } catch (_: Exception) {}
+    }
+
     // ===== SOUND =====
     private fun playBg(on: Boolean) {
         if (on && bgTrack == null) {
@@ -637,7 +634,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     }
 
     // ===== SURFACE =====
-    override fun surfaceCreated(h: SurfaceHolder) {
+    override fun surfaceCreated(s: SurfaceHolder) {
         recalc(width.toFloat(), height.toFloat()); running = true
         loopThread = Thread {
             var last = SystemClock.elapsedRealtime()
@@ -654,12 +651,12 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         }; loopThread!!.start()
     }
 
-    override fun surfaceChanged(h: SurfaceHolder, f: Int, w: Int, h: Int) { recalc(w.toFloat(), h.toFloat()) }
-    override fun surfaceDestroyed(h: SurfaceHolder) {
+    override fun surfaceChanged(s: SurfaceHolder, f: Int, w: Int, h: Int) { recalc(w.toFloat(), h.toFloat()) }
+    override fun surfaceDestroyed(s: SurfaceHolder) {
         running = false; bgRun = false
         try { loopThread?.join(500) } catch(_:Exception){}
         try { bgThread?.join(300); bgTrack?.release() } catch(_:Exception){}
-        try { soundPool?.release() } catch(_:Exception){}
-        bgTrack = null; loopThread = null; bgThread = null; soundPool = null
+        sfxATs.forEach { try { it?.stop(); it?.release() } catch(_:Exception){} }
+        bgTrack = null; loopThread = null; bgThread = null
     }
 }
