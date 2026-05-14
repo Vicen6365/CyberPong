@@ -108,7 +108,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private fun serve() {
         state = 2
         val dir = if (Math.random() > 0.5) 1f else -1f
-        val angle = (Math.random() - 0.5) * 0.8
+        val angle = (Math.random().toFloat() - 0.5f) * 0.8f
         val spd = sb * 1.2f
         ball.x = W / 2f; ball.y = H / 2f
         ball.vx = dir * cos(angle).toFloat() * spd
@@ -145,8 +145,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         // Power-up spawn
         if (!puActive && currentPU == null && SystemClock.elapsedRealtime() > nextPUSpawn) {
             val types = PUType.values(); val t = types[(Math.random() * types.size).toInt()]
-            puX = W / 2f + ((Math.random() - 0.5) * W * 0.35f).toFloat()
-            puY = H / 2f + ((Math.random() - 0.5) * H * 0.25f).toFloat()
+            puX = W / 2f + ((Math.random().toFloat() - 0.5f) * W * 0.35f).toFloat()
+            puY = H / 2f + ((Math.random().toFloat() - 0.5f) * H * 0.25f).toFloat()
             puR = max(14f, 22f * s); puActive = true; puType = t
             nextPUSpawn = SystemClock.elapsedRealtime() + 8000 + (Math.random() * 4000).toLong()
         }
@@ -159,7 +159,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                     PUType.MINI -> aiMini = false
                     PUType.SLOWMO -> ballSlow = false
                     PUType.INVISIBLE -> ballInvisible = false
-                    PUType.CURVE -> ballCurve = 0f }
+                    PUType.CURVE -> ballCurve = 0f; else -> {} }
                 currentPU = null
             }
         }
@@ -232,8 +232,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         val dir = if (ball.vx > 0f) 1 else -1
         if (dir < 0) {
             val off = (1f - difficulty / 100f) * H * 0.15f
-            aiTargetY = ball.y + ((Math.random() - 0.5) * off).toFloat()
-        } else aiTargetY = H/2f + ((Math.random() - 0.5) * H * 0.1f).toFloat()
+            aiTargetY = ball.y + ((Math.random().toFloat() - 0.5f) * off)
+        } else aiTargetY = H/2f + ((Math.random().toFloat() - 0.5f) * H * 0.1f)
         val maxSpd = max(2f, 5f + difficulty / 10f) * s
         val diff = aiTargetY - aiY
         if (abs(diff) > 3f) aiY += sign(diff) * min(abs(diff), maxSpd)
@@ -261,10 +261,10 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
     private fun spawnParts(x: Float, y: Float, color: Int, count: Int, spdMul: Float) {
         for (i in 0 until count) {
-            val a = (Math.random() * PI * 2).toFloat()
-            val spd = (Math.random() * 4f * s + 1f * s) * spdMul
+            val a = (Math.random().toFloat() * PI.toFloat() * 2f)
+            val spd = (Math.random().toFloat() * 4f * s + 1f * s) * spdMul
             parts.add(Part(x, y, cos(a.toDouble()).toFloat()*spd, sin(a.toDouble()).toFloat()*spd, 1f,
-                0.012f + (Math.random()*0.02f).toFloat(), color, (Math.random()*3f*s + 1f*s)))
+                0.012f + (Math.random().toFloat()*0.02f), color, (Math.random().toFloat()*3f*s + 1f*s)))
         }
     }
 
