@@ -25,10 +25,11 @@ jobs:
           pip install pillow
           python3 generate_icons.py
 
+      - name: Generate Gradle Wrapper
+        run: gradle wrapper --gradle-version=8.7
+
       - name: Build with Gradle
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
+        run: ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
