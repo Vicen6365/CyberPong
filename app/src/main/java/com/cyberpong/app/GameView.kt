@@ -62,7 +62,9 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             .setAudioFormat(AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(sr).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
             .setBufferSizeInBytes((sr*0.3f).toInt()*2).build()}catch(_:Exception){}
         setOnTouchListener{_,e->when(e.action){MotionEvent.ACTION_DOWN->{touchY=e.y
-            if(state==0){menuTap(e.x,e.y);true}else{when(state){4->start();1->serve()};true}}
+            when(state){0->menuTap(e.x,e.y);4->start();1->serve()
+                2->if(e.x>W-75f*s&&e.y<75f*s)pause()
+                5->pauseTap(e.x,e.y)};true}
         MotionEvent.ACTION_MOVE->{touchY=e.y;true} else->false}}
     }
 
@@ -80,6 +82,13 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             if((x-cl).pow(2)+(y-cy).pow(2)<(cs+10f*s).pow(2)){pIdx=i;return}}
         val sW=220f*s;val sH=65f*s;val sX=cx-sW/2f;val sY=450f*s
         if(x>sX-10f&&x<sX+sW+10f&&y>sY-10f&&y<sY+sH+10f){start()}
+    }
+    private fun pause(){state=5}
+    private fun pauseTap(x:Float,y:Float){
+        val cx=W/2f;val bw=200f*s;val bh=55f*s;val sX=cx-bw/2f
+        val rY=H/2f-40f;val mY=H/2f+40f
+        if(x>sX-15f&&x<sX+bw+15f&&y>rY-15f&&y<rY+bh+15f){state=2}
+        if(x>sX-15f&&x<sX+bw+15f&&y>mY-15f&&y<mY+bh+15f){start()}
     }
 
     private fun start(){state=1;pScore=0;aScore=0;diff=0f;rTime=0f;padY=H/2f;aiY=H/2f
@@ -227,7 +236,35 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         if(cuPU>=0){val ci=cuPU;val al=(128+(sin(SystemClock.elapsedRealtime()/300.0)*0.3f*127f).toInt()).coerceIn(0,255)
             tp.textSize=14f*s;tp.color=Color.argb(al,Color.red(puC[ci]),Color.green(puC[ci]),Color.blue(puC[ci]))
             c.drawText("${puN[ci]} ${ceil(cuTimer).toInt()}s",W/2f,H/2f+70f,tp)}
-        // Menu
+        // Pause button
+        if(state==2){val pb=45f*s;val px=W-55f*s;val py=35f*s
+            paint.color=Color.argb(40,255,255,255)
+            c.drawRoundRect(px-pb/2f,py-pb/2f,px+pb/2f,py+pb/2f,pb*0.25f,pb*0.25f,paint)
+            paint.color=Color.argb(150,255,255,255);val bs=8f*s
+            c.drawRect(px-bs*1.1f,py-bs*0.8f,px-bs*0.2f,py+bs*0.8f,paint)
+            c.drawRect(px+bs*0.2f,py-bs*0.8f,px+bs*1.1f,py+bs*0.8f,paint)}
+        // Pause overlay
+        if(state==5){c.drawColor(Color.argb(180,0,0,0));val cx=W/2f
+            tp.textSize=50f*s;tp.color=Color.rgb(0,255,204)
+            c.drawText("PAUSED",cx,H/2f-110f*s,tp)
+            val bw=200f*s;val bh=55f*s;val sX=cx-bw/2f;val rY=H/2f-40f
+            paint.color=Color.argb(40,0,255,200)
+            c.drawRoundRect(sX,rY,sX+bw,rY+bh,bh*0.25f,bh*0.25f,paint)
+            paint.style=Paint.Style.STROKE;paint.strokeWidth=3f*s
+            paint.color=Color.rgb(0,255,200)
+            c.drawRoundRect(sX,rY,sX+bw,rY+bh,bh*0.25f,bh*0.25f,paint)
+            paint.style=Paint.Style.FILL;val ts=22f*s
+            tp.textSize=ts;tp.color=Color.rgb(0,255,200)
+            c.drawText("RESUME",cx,rY+bh/2f+ts*0.35f,tp)
+            val mY=H/2f+40f
+            paint.color=Color.argb(25,200,200,200)
+            c.drawRoundRect(sX,mY,sX+bw,mY+bh,bh*0.25f,bh*0.25f,paint)
+            paint.style=Paint.Style.STROKE;paint.strokeWidth=3f*s
+            paint.color=Color.argb(120,200,200,200)
+            c.drawRoundRect(sX,mY,sX+bw,mY+bh,bh*0.25f,bh*0.25f,paint)
+            paint.style=Paint.Style.FILL
+            tp.textSize=ts;tp.color=Color.argb(180,200,200,200)
+            c.drawText("MAIN MENU",cx,mY+bh/2f+ts*0.35f,tp)}
         if(state==0){val cx=W/2f
             // Title
             val tSz=70f*s;tp.textSize=tSz;tp.color=Color.rgb(0,255,204)
