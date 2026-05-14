@@ -263,7 +263,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         for (i in 0 until count) {
             val a = (Math.random() * PI * 2).toFloat()
             val spd = (Math.random() * 4f * s + 1f * s) * spdMul
-            parts.add(Part(x, y, cos(a)*spd, sin(a)*spd, 1f,
+            parts.add(Part(x, y, cos(a.toDouble()).toFloat()*spd, sin(a.toDouble()).toFloat()*spd, 1f,
                 0.012f + (Math.random()*0.02f).toFloat(), color, (Math.random()*3f*s + 1f*s)))
         }
     }
@@ -455,7 +455,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     }
 
     // ===== SURFACE =====
-    override fun surfaceCreated(h: SurfaceHolder) { recalc(width.toFloat(),height.toFloat()); running = true
+    override fun surfaceCreated(holder: SurfaceHolder) { recalc(width.toFloat(),height.toFloat()); running = true
         loopThread = Thread {
             var last = SystemClock.elapsedRealtime()
             while (running) {
@@ -465,7 +465,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 val e = SystemClock.elapsedRealtime()-now; if(e<16) sleepMs(16-e)
             }
         }; loopThread!!.start() }
-    override fun surfaceChanged(h: SurfaceHolder, f: Int, w: Int, h: Int) { recalc(w.toFloat(),h.toFloat()) }
-    override fun surfaceDestroyed(h: SurfaceHolder) { running = false; bgRun = false
+    override fun surfaceChanged(holder: SurfaceHolder, f: Int, w: Int, h: Int) { recalc(w.toFloat(),h.toFloat()) }
+    override fun surfaceDestroyed(holder: SurfaceHolder) { running = false; bgRun = false
         try { bgThread?.join(300); bgTrack?.release() } catch(_:Exception){}; bgTrack = null }
 }
