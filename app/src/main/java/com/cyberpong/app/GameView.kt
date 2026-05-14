@@ -70,20 +70,16 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         pw=max(8f,12f*s);ph=max(50f,100f*s);br=max(5f,9f*s);pm=max(15f,30f*s);sb=max(3f,6f*s);puR=max(14f,22f*s)}
 
     private fun menuTap(x:Float,y:Float){
-        val cx=W/2f;val bw=min(140f,110f*s);val bh=min(60f,42f*s);val gap=min(16f,12f*s)
-        val bx=cx-(bw*3f+gap*2f)/2f;val by=170f*s
-        // Difficulty buttons
+        val cx=W/2f;val bw=140f*s;val bh=60f*s;val gap=20f*s
+        val bx=cx-(bw*3f+gap*2f)/2f;val by=210f*s
         for(i in 0..2){val l=bx+i*(bw+gap)
-            if(x>l&&x<l+bw&&y>by&&y<by+bh){aiDiff=i;return}}
-        // Color swatches
-        val cs=min(36f,30f*s);val cg=min(24f,18f*s);val cRow=(pal.size+1)/2
-        val cw=cRow*(cs+cg)-cg;val cy=260f*s
-        for(i in pal.indices){val row=i/2;val col=i%2
-            val cl=cx-cw/2f+row*(cs+cg);val ct=cy+col*(cs+cg)
-            if((x-cl).pow(2)+(y-ct).pow(2)<cs*cs){pIdx=i;return}}
-        // Start button
-        val sW=min(180f,150f*s);val sH=min(60f,48f*s);val sX=cx-sW/2f;val sY=350f*s
-        if(x>sX&&x<sX+sW&&y>sY&&y<sY+sH){start()}
+            if(x>l-10f&&x<l+bw+10f&&y>by-10f&&y<by+bh+10f){aiDiff=i;return}}
+        val cs=38f*s;val cg=20f*s;val cy=360f*s
+        val cStart=cx-((6f*(2f*cs+cg)-cg)/2f)+cs
+        for(i in pal.indices){val cl=cStart+i*(2f*cs+cg)
+            if((x-cl).pow(2)+(y-cy).pow(2)<(cs+10f*s).pow(2)){pIdx=i;return}}
+        val sW=220f*s;val sH=65f*s;val sX=cx-sW/2f;val sY=450f*s
+        if(x>sX-10f&&x<sX+sW+10f&&y>sY-10f&&y<sY+sH+10f){start()}
     }
 
     private fun start(){state=1;pScore=0;aScore=0;diff=0f;rTime=0f;padY=H/2f;aiY=H/2f
@@ -234,46 +230,45 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         // Menu
         if(state==0){val cx=W/2f
             // Title
-            tp.textSize=min(58f,58f*s);tp.color=Color.rgb(0,255,204)
-            c.drawText("CYBER PONG",cx,100f*s,tp)
+            val tSz=70f*s;tp.textSize=tSz;tp.color=Color.rgb(0,255,204)
+            c.drawText("CYBER PONG",cx,70f*s,tp)
             // Difficulty label
-            val lblSize=min(16f,18f*s)
-            tp.textSize=lblSize;tp.color=Color.argb(180,200,200,200)
-            c.drawText("DIFFICULTY",cx,150f*s,tp)
-            // Difficulty buttons
-            val bw=min(140f,110f*s);val bh=min(60f,42f*s);val gap=min(16f,12f*s)
-            val bx=cx-(bw*3f+gap*2f)/2f;val by=155f*s
+            val lbl=20f*s
+            tp.textSize=lbl;tp.color=Color.argb(180,200,200,200)
+            c.drawText("DIFFICULTY",cx,190f*s,tp)
+            // Difficulty buttons (no min caps!)
+            val bw=140f*s;val bh=60f*s;val gap=20f*s
+            val bx=cx-(bw*3f+gap*2f)/2f;val by=210f*s
             val diffs=arrayOf("EASY","MEDIUM","EXPERT")
             paint.style=Paint.Style.FILL
             for(i in 0..2){val l=bx+i*(bw+gap);val sel=i==aiDiff
-                paint.color=if(sel)Color.argb(60,0,255,200)else Color.argb(30,100,100,100)
-                paint.alpha=if(sel)60 else 30;c.drawRoundRect(l,by,l+bw,by+bh,bh*0.3f,bh*0.3f,paint)
-                if(sel){paint.style=Paint.Style.STROKE;paint.strokeWidth=2f
-                    paint.color=Color.rgb(0,255,200);c.drawRoundRect(l,by,l+bw,by+bh,bh*0.3f,bh*0.3f,paint)
+                val bg=if(sel)Color.argb(60,0,255,200)else Color.argb(25,100,100,100)
+                paint.color=bg;c.drawRoundRect(l,by,l+bw,by+bh,bh*0.25f,bh*0.25f,paint)
+                if(sel){paint.style=Paint.Style.STROKE;paint.strokeWidth=4f*s
+                    paint.color=Color.rgb(0,255,200);c.drawRoundRect(l,by,l+bw,by+bh,bh*0.25f,bh*0.25f,paint)
                     paint.style=Paint.Style.FILL}
-                tp.textSize=lblSize;tp.color=if(sel)Color.rgb(0,255,200)else Color.rgb(150,150,150)
-                c.drawText(diffs[i],l+bw/2f,by+bh/2f+lblSize*0.35f,tp)}
+                tp.textSize=lbl;tp.color=if(sel)Color.rgb(0,255,200)else Color.rgb(130,130,130)
+                c.drawText(diffs[i],l+bw/2f,by+bh/2f+lbl*0.35f,tp)}
             // Paddle label
-            tp.textSize=lblSize;tp.color=Color.argb(180,200,200,200)
-            c.drawText("PADDLE COLOR",cx,240f*s,tp)
-            // Color swatches
-            val cs=min(36f,30f*s);val cg=min(24f,18f*s);val cRow=3
-            val cw=cRow*(cs+cg)-cg;val cy=250f*s
-            for(i in pal.indices){val col=i%cRow;val row=i/cRow
-                val cl=cx-cw/2f+col*(cs+cg);val ct=cy+row*(cs+cg)
+            tp.textSize=lbl;tp.color=Color.argb(180,200,200,200)
+            c.drawText("PADDLE COLOR",cx,330f*s,tp)
+            // Color swatches (1 row of 6)
+            val cs=38f*s;val cg=20f*s
+            val cStart=cx-((6f*(2f*cs+cg)-cg)/2f)+cs;val cy=360f*s
+            for(i in pal.indices){val cl=cStart+i*(2f*cs+cg)
                 paint.color=pal[i];paint.alpha=if(i==pIdx)255 else 150
-                c.drawCircle(cl,ct,cs/2f,paint)
-                if(i==pIdx){paint.style=Paint.Style.STROKE;paint.strokeWidth=2f
-                    paint.color=Color.WHITE;c.drawCircle(cl,ct,cs/2f+2f,paint)
+                c.drawCircle(cl,cy,cs,paint)
+                if(i==pIdx){paint.style=Paint.Style.STROKE;paint.strokeWidth=4f*s
+                    paint.color=Color.WHITE;c.drawCircle(cl,cy,cs+4f*s,paint)
                     paint.style=Paint.Style.FILL}}
             // Start button
-            val sW=min(180f,150f*s);val sH=min(60f,48f*s);val sX=cx-sW/2f;val sY=340f*s
-            paint.color=Color.argb(50,0,255,200);c.drawRoundRect(sX,sY,sX+sW,sY+sH,sH*0.3f,sH*0.3f,paint)
-            paint.style=Paint.Style.STROKE;paint.strokeWidth=2f
-            paint.color=Color.rgb(0,255,200);c.drawRoundRect(sX,sY,sX+sW,sY+sH,sH*0.3f,sH*0.3f,paint)
+            val sW=220f*s;val sH=65f*s;val sX=cx-sW/2f;val sY=450f*s
+            paint.color=Color.argb(50,0,255,200);c.drawRoundRect(sX,sY,sX+sW,sY+sH,sH*0.25f,sH*0.25f,paint)
+            paint.style=Paint.Style.STROKE;paint.strokeWidth=4f*s
+            paint.color=Color.rgb(0,255,200);c.drawRoundRect(sX,sY,sX+sW,sY+sH,sH*0.25f,sH*0.25f,paint)
             paint.style=Paint.Style.FILL
-            tp.textSize=min(22f,24f*s);tp.color=Color.rgb(0,255,200)
-            c.drawText("START",cx,sY+sH/2f+min(22f,24f*s)*0.35f,tp)}
+            val btSz=32f*s;tp.textSize=btSz;tp.color=Color.rgb(0,255,200)
+            c.drawText("START",cx,sY+sH/2f+btSz*0.35f,tp)}
         // Serving
         if(state==1){tp.textSize=min(18f,20f*s);tp.color=Color.argb(200,0,255,204)
             c.drawText("TAP TO SERVE",W/2f,240f,tp)
