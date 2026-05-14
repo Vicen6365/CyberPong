@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.webkit.WebChromeClient
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
@@ -18,13 +19,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Force dark mode off so the game looks correct
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            applicationContext.getTheme().applyStyle(
-                android.R.style.Theme_DeviceDefault_DayNight_NoActionBar, true
-            )
-        }
-
         webView = WebView(this).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
@@ -33,27 +27,22 @@ class MainActivity : ComponentActivity() {
             settings.builtInZoomControls = false
             settings.displayZoomControls = false
             settings.mediaPlaybackRequiresUserGesture = false
-            settings.loadWithOverviewMode = true
-            settings.useWideViewPort = true
 
-            // Cache disabled for dev - fresh load every time
-            settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
-
-            // Important: force dark mode OFF so canvas renders correctly
+            // Force dark mode OFF so canvas renders with correct colors
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                settings.isForceDark = android.webkit.WebSettings.FORCE_DARK_OFF
+                settings.forceDark = WebSettings.FORCE_DARK_OFF
             }
+
+            // No cache for dev - fresh load every time
+            settings.cacheMode = WebSettings.LOAD_NO_CACHE
 
             webChromeClient = WebChromeClient()
             webViewClient = WebViewClient()
-
             setBackgroundColor(Color.parseColor("#050510"))
-
-            // Enable hardware layer
             setLayerType(View.LAYER_TYPE_HARDWARE, null)
         }
 
-        // Enable remote debugging
+        // Enable remote debugging (dev only)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             WebView.setWebContentsDebuggingEnabled(true)
         }
@@ -77,6 +66,6 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onBackPressed() {
-        // Block back button - game handles its own flow
+        // Block back - game handles its own flow
     }
 }
