@@ -30,11 +30,11 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private val puC=intArrayOf(Color.rgb(255,107,53),Color.rgb(57,255,20),Color.rgb(255,0,85),Color.rgb(0,212,255),Color.rgb(170,102,255))
 
     // Particles (pooled arrays)
-    private val pX=FloatArray(80); private val pY=FloatArray(80)
-    private val pvX=FloatArray(80); private val pvY=FloatArray(80)
-    private val pL=FloatArray(80); private val pD=FloatArray(80)
-    private val pR=IntArray(80); private val pG=IntArray(80); private val pB=IntArray(80)
-    private val pRad=FloatArray(80); private var pCnt=0
+    private val arrX=FloatArray(80); private val arrY=FloatArray(80)
+    private val arrVX=FloatArray(80); private val arrVY=FloatArray(80)
+    private val arrL=FloatArray(80); private val arrD=FloatArray(80)
+    private val arrCR=IntArray(80); private val arrCG=IntArray(80); private val arrCB=IntArray(80)
+    private val arrRad=FloatArray(80); private var pCnt=0
 
     private val paint=Paint(Paint.ANTI_ALIAS_FLAG)
     private val tp=Paint(Paint.ANTI_ALIAS_FLAG).apply{typeface=Typeface.MONOSPACE;isFakeBoldText=true;textAlign=Paint.Align.CENTER}
@@ -145,14 +145,14 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         val at=if(bvx>0f) by+((Math.random().toFloat()-0.5f)*max(0.1f,1f-diff/100f)*H*0.15f)
             else H/2f+((Math.random().toFloat()-0.5f)*H*0.1f)
         val asp=max(2f,5f+diff/10f)*s;val dd=at-aiY
-        if(abs(dd)>3f)aY+=sign(dd)*min(abs(dd),asp)
-        aY=max(aah/2f,min(H.toFloat()-aah/2f,aY))
+        if(abs(dd)>3f)aiY+=sign(dd)*min(abs(dd),asp)
+        aiY=max(aah/2f,min(H.toFloat()-aah/2f,aiY))
         val psp=max(3f,8f*s);val pd=touchY-padY
-        if(abs(pd)>2f)pY+=sign(pd)*min(abs(pd),psp)
-        pY=max(pph/2f,min(H.toFloat()-pph/2f,pY))
+        if(abs(pd)>2f)padY+=sign(pd)*min(abs(pd),psp)
+        padY=max(pph/2f,min(H.toFloat()-pph/2f,padY))
         var pi=0;while(pi<pCnt){arrX[pi]+=arrVX[pi];arrY[pi]+=arrVY[pi];arrL[pi]-=arrD[pi]
-            if(arrL[pi]<=0f){pCnt--;if(pi<pCnt){val li=pCnt;arrX[pi]=pX[li];arrY[pi]=pY[li];arrVX[pi]=pvX[li];arrVY[pi]=pvY[li]
-                    arrL[pi]=pL[li];arrD[pi]=pD[li];arrCR[pi]=pR[li];arrCG[pi]=pG[li];arrCB[pi]=pB[li];arrRad[pi]=pRad[li]}}else pi++}
+            if(arrL[pi]<=0f){pCnt--;if(pi<pCnt){val li=pCnt;arrX[pi]=arrX[li];arrY[pi]=arrY[li];arrVX[pi]=arrVX[li];arrVY[pi]=arrVY[li]
+                    arrL[pi]=arrL[li];arrD[pi]=arrD[li];arrCR[pi]=arrCR[li];arrCG[pi]=arrCG[li];arrCB[pi]=arrCB[li];arrRad[pi]=arrRad[li]}}else pi++}
         // Decay trail
         for(i in 0 until min(tH,12))tL[i]*=0.92f
     }
