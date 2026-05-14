@@ -29,6 +29,13 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private val puN=arrayOf("CURVE","GIANT","MINI","SLOW","GHOST")
     private val puC=intArrayOf(Color.rgb(255,107,53),Color.rgb(57,255,20),Color.rgb(255,0,85),Color.rgb(0,212,255),Color.rgb(170,102,255))
 
+    // Menu settings
+    private var aiDiff=1 // 0=easy 1=medium 2=expert
+    private var pIdx=0 // player color index
+    private val pal=intArrayOf(Color.rgb(0,200,160),Color.rgb(57,255,20),Color.rgb(255,107,53),
+        Color.rgb(0,212,255),Color.rgb(255,0,170),Color.rgb(170,102,255))
+    private val pCol get()=pal[pIdx];private val aCol get()=pal[(pIdx+3)%pal.size]
+
     // Particles (pooled arrays)
     private val arrX=FloatArray(80); private val arrY=FloatArray(80)
     private val arrVX=FloatArray(80); private val arrVY=FloatArray(80)
@@ -55,12 +62,29 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             .setAudioFormat(AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(sr).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
             .setBufferSizeInBytes((sr*0.3f).toInt()*2).build()}catch(_:Exception){}
         setOnTouchListener{_,e->when(e.action){MotionEvent.ACTION_DOWN->{touchY=e.y
-            when(state){0,4->start();1->serve()};true}
+            if(state==0){menuTap(e.x,e.y);true}else{when(state){4->start();1->serve()};true}}
         MotionEvent.ACTION_MOVE->{touchY=e.y;true} else->false}}
     }
 
     private fun rcalc(w:Float,hh:Float){W=w;H=hh;s=min(w/800f,hh/500f)
         pw=max(8f,12f*s);ph=max(50f,100f*s);br=max(5f,9f*s);pm=max(15f,30f*s);sb=max(3f,6f*s);puR=max(14f,22f*s)}
+
+    private fun menuTap(x:Float,y:Float){
+        val cx=W/2f;val bw=min(140f,110f*s);val bh=min(60f,42f*s);val gap=min(16f,12f*s)
+        val bx=cx-(bw*3f+gap*2f)/2f;val by=170f*s
+        // Difficulty buttons
+        for(i in 0..2){val l=bx+i*(bw+gap)
+            if(x>l&&x<l+bw&&y>by&&y<by+bh){aiDiff=i;return}}
+        // Color swatches
+        val cs=min(36f,30f*s);val cg=min(24f,18f*s);val cRow=(pal.size+1)/2
+        val cw=cRow*(cs+cg)-cg;val cy=260f*s
+        for(i in pal.indices){val row=i/2;val col=i%2
+            val cl=cx-cw/2f+row*(cs+cg);val ct=cy+col*(cs+cg)
+            if((x-cl).pow(2)+(y-ct).pow(2)<cs*cs){pIdx=i;return}}
+        // Start button
+        val sW=min(180f,150f*s);val sH=min(60f,48f*s);val sX=cx-sW/2f;val sY=350f*s
+        if(x>sX&&x<sX+sW&&y>sY&&y<sY+sH){start()}
+    }
 
     private fun start(){state=1;pScore=0;aScore=0;diff=0f;rTime=0f;padY=H/2f;aiY=H/2f
         bx=W/2f;by=H/2f;bvx=0f;bvy=0f;tH=0;pCnt=0;giant=false;mini=false;ballC=0f;ballI=false;ballS=false
@@ -71,7 +95,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         if(abs(bvy)<0.3f)bvy=if(bvy>0)0.3f else-0.3f;rTime=0f;diff=0f;tH=0}
 
     private fun ap(w:Boolean){state=3;apTimer=1.5f;if(w){state=4;plw()};pls()
-        val col=if(pScore>aScore) intArrayOf(0,255,204) else intArrayOf(255,51,102)
+        val col=if(pScore>aScore) intArrayOf(Color.red(pCol),Color.green(pCol),Color.blue(pCol))
+            else intArrayOf(Color.red(aCol),Color.green(aCol),Color.blue(aCol))
         spawnP(col,20,6f)}
 
     private fun spawnP(col:IntArray,cnt:Int,sm:Float){
@@ -134,17 +159,18 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         if(bx-pm-pw/2f<=br&&bx+br>=pm-pw/2f&&by+br>padY-pph/2f&&by-br<padY+pph/2f&&bvx<0f){
             val hp=(by-padY)/(pph/2f);val ang=hp*PI/3.0;val spd=sqrt((bvx*bvx+bvy*bvy).toDouble()).toFloat()*1.03f
             bvx=cos(ang).toFloat()*spd;bvy=sin(ang).toFloat()*spd;bx=pm+pw/2f+br+1f;ballC=0f;ph(0)
-            val col=intArrayOf(0,255,204);spawnP(col,6,2f)}
+            spawnP(intArrayOf(Color.red(pCol),Color.green(pCol),Color.blue(pCol)),6,2f)}
         val aah=if(mini)ph*0.5f else ph
         if(bx+br>=W.toFloat()-pm-pw/2f&&bx-br<=W.toFloat()-pm+pw/2f&&by+br>aiY-aah/2f&&by-br<aiY+aah/2f&&bvx>0f){
             val hp=(by-aiY)/(aah/2f);val ang=hp*PI/3.0;val spd=sqrt((bvx*bvx+bvy*bvy).toDouble()).toFloat()*1.03f
             bvx=-cos(ang).toFloat()*spd;bvy=sin(ang).toFloat()*spd;bx=W.toFloat()-pm-pw/2f-br-1f;ph(1)
-            val col=intArrayOf(255,51,102);spawnP(col,6,2f)}
+            spawnP(intArrayOf(Color.red(aCol),Color.green(aCol),Color.blue(aCol)),6,2f)}
         if(bx-br<0f){aScore++;pls();ap(aScore>=win)}
         if(bx+br>W){pScore++;pls();ap(pScore>=win)}
-        val at=if(bvx>0f) by+((Math.random().toFloat()-0.5f)*max(0.5f,1.5f-diff/60f)*H*0.25f)
+        val errBase=floatArrayOf(0.5f,0.25f,0.1f)[aiDiff];val spdBase=floatArrayOf(3f,5f,8f)[aiDiff]
+        val at=if(bvx>0f) by+((Math.random().toFloat()-0.5f)*max(errBase,1.5f-diff/60f)*H*0.25f)
             else H/2f+((Math.random().toFloat()-0.5f)*H*0.15f)
-        val asp=max(2f,3f+diff/25f)*s;val dd=at-aiY
+        val asp=max(2f,spdBase+diff/25f)*s;val dd=at-aiY
         if(abs(dd)>3f)aiY+=sign(dd)*min(abs(dd),asp)
         aiY=max(aah/2f,min(H.toFloat()-aah/2f,aiY))
         padY=touchY.coerceIn(pph/2f,H.toFloat()-pph/2f)
@@ -169,10 +195,12 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         // Center dashes
         paint.color=Color.argb(50,100,200,255);paint.strokeWidth=2f
         i=0f;while(i<H){c.drawLine(W/2f,i,W/2f,min(i+8f,H),paint);i+=16f}
+        // Paddle colors (for score hints below)
+        val pc=pCol;val ac=aCol
         // Scores
-        tp.textSize=min(56f,56f*s);tp.color=Color.rgb(0,200,160)
+        tp.textSize=min(56f,56f*s);tp.color=pc
         c.drawText(pScore.toString(),W/2f-80f,55f,tp)
-        tp.color=Color.rgb(200,40,80)
+        tp.color=ac
         c.drawText(aScore.toString(),W/2f+80f,55f,tp)
         // Trail
         val th=min(tH,12)
@@ -186,8 +214,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         }
         // Paddles
         val pph=if(giant)ph*2f else ph;val aah=if(mini)ph*0.5f else ph
-        nrRect(c,pm-pw/2f,padY-pph/2f,pw,pph,Color.rgb(0,200,160))
-        nrRect(c,W-pm-pw/2f,aiY-aah/2f,pw,aah,Color.rgb(200,40,80))
+        nrRect(c,pm-pw/2f,padY-pph/2f,pw,pph,pc)
+        nrRect(c,W-pm-pw/2f,aiY-aah/2f,pw,aah,ac)
         // Particles
         for(pi in 0 until pCnt){
             val al=(max(0f,arrL[pi])*200f).toInt().coerceIn(0,200)
@@ -203,11 +231,49 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         if(cuPU>=0){val ci=cuPU;val al=(128+(sin(SystemClock.elapsedRealtime()/300.0)*0.3f*127f).toInt()).coerceIn(0,255)
             tp.textSize=14f*s;tp.color=Color.argb(al,Color.red(puC[ci]),Color.green(puC[ci]),Color.blue(puC[ci]))
             c.drawText("${puN[ci]} ${ceil(cuTimer).toInt()}s",W/2f,H/2f+70f,tp)}
-        // Title
-        if(state==0){tp.textSize=min(52f,52f*s);tp.color=Color.rgb(0,255,204)
-            c.drawText("CYBER PONG",W/2f,120f,tp);tp.textSize=min(16f,18f*s)
-            tp.color=Color.argb(128,100,200,255)
-            if((SystemClock.elapsedRealtime()/400L).toInt()%2==0)c.drawText("TAP TO START",W/2f,200f,tp)}
+        // Menu
+        if(state==0){val cx=W/2f
+            // Title
+            tp.textSize=min(58f,58f*s);tp.color=Color.rgb(0,255,204)
+            c.drawText("CYBER PONG",cx,100f*s,tp)
+            // Difficulty label
+            val lblSize=min(16f,18f*s)
+            tp.textSize=lblSize;tp.color=Color.argb(180,200,200,200)
+            c.drawText("DIFFICULTY",cx,150f*s,tp)
+            // Difficulty buttons
+            val bw=min(140f,110f*s);val bh=min(60f,42f*s);val gap=min(16f,12f*s)
+            val bx=cx-(bw*3f+gap*2f)/2f;val by=155f*s
+            val diffs=arrayOf("EASY","MEDIUM","EXPERT")
+            paint.style=Paint.Style.FILL
+            for(i in 0..2){val l=bx+i*(bw+gap);val sel=i==aiDiff
+                paint.color=if(sel)Color.argb(60,0,255,200)else Color.argb(30,100,100,100)
+                paint.alpha=if(sel)60 else 30;c.drawRoundRect(l,by,l+bw,by+bh,bh*0.3f,bh*0.3f,paint)
+                if(sel){paint.style=Paint.Style.STROKE;paint.strokeWidth=2f
+                    paint.color=Color.rgb(0,255,200);c.drawRoundRect(l,by,l+bw,by+bh,bh*0.3f,bh*0.3f,paint)
+                    paint.style=Paint.Style.FILL}
+                tp.textSize=lblSize;tp.color=if(sel)Color.rgb(0,255,200)else Color.rgb(150,150,150)
+                c.drawText(diffs[i],l+bw/2f,by+bh/2f+lblSize*0.35f,tp)}
+            // Paddle label
+            tp.textSize=lblSize;tp.color=Color.argb(180,200,200,200)
+            c.drawText("PADDLE COLOR",cx,240f*s,tp)
+            // Color swatches
+            val cs=min(36f,30f*s);val cg=min(24f,18f*s);val cRow=3
+            val cw=cRow*(cs+cg)-cg;val cy=250f*s
+            for(i in pal.indices){val col=i%cRow;val row=i/cRow
+                val cl=cx-cw/2f+col*(cs+cg);val ct=cy+row*(cs+cg)
+                paint.color=pal[i];paint.alpha=if(i==pIdx)255 else 150
+                c.drawCircle(cl,ct,cs/2f,paint)
+                if(i==pIdx){paint.style=Paint.Style.STROKE;paint.strokeWidth=2f
+                    paint.color=Color.WHITE;c.drawCircle(cl,ct,cs/2f+2f,paint)
+                    paint.style=Paint.Style.FILL}}
+            // Start button
+            val sW=min(180f,150f*s);val sH=min(60f,48f*s);val sX=cx-sW/2f;val sY=340f*s
+            paint.color=Color.argb(50,0,255,200);c.drawRoundRect(sX,sY,sX+sW,sY+sH,sH*0.3f,sH*0.3f,paint)
+            paint.style=Paint.Style.STROKE;paint.strokeWidth=2f
+            paint.color=Color.rgb(0,255,200);c.drawRoundRect(sX,sY,sX+sW,sY+sH,sH*0.3f,sH*0.3f,paint)
+            paint.style=Paint.Style.FILL
+            tp.textSize=min(22f,24f*s);tp.color=Color.rgb(0,255,200)
+            c.drawText("START",cx,sY+sH/2f+min(22f,24f*s)*0.35f,tp)}
         // Serving
         if(state==1){tp.textSize=min(18f,20f*s);tp.color=Color.argb(200,0,255,204)
             c.drawText("TAP TO SERVE",W/2f,240f,tp)
@@ -216,7 +282,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             paint.color=Color.WHITE;c.drawCircle(bx,by,br*0.8f,paint)}
         // Game over
         if(state==4){c.drawColor(Color.argb(150,0,0,0))
-            val w=pScore>=7;val clr=if(w)Color.rgb(0,255,204)else Color.rgb(255,51,102)
+            val w=pScore>=7;val clr=if(w)pc else ac
             tp.textSize=min(42f,42f*s);tp.color=clr
             c.drawText(if(w)"YOU WIN!"else"YOU LOSE",W/2f,150f,tp)
             tp.textSize=min(28f,28f*s);tp.color=Color.WHITE
