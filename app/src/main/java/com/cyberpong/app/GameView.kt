@@ -147,9 +147,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         val asp=max(2f,5f+diff/10f)*s;val dd=at-aiY
         if(abs(dd)>3f)aiY+=sign(dd)*min(abs(dd),asp)
         aiY=max(aah/2f,min(H.toFloat()-aah/2f,aiY))
-        val psp=max(3f,8f*s);val pd=touchY-padY
-        if(abs(pd)>2f)padY+=sign(pd)*min(abs(pd),psp)
-        padY=max(pph/2f,min(H.toFloat()-pph/2f,padY))
+        padY=touchY.coerceIn(pph/2f,H.toFloat()-pph/2f)
         var pi=0;while(pi<pCnt){arrX[pi]+=arrVX[pi];arrY[pi]+=arrVY[pi];arrL[pi]-=arrD[pi]
             if(arrL[pi]<=0f){pCnt--;if(pi<pCnt){val li=pCnt;arrX[pi]=arrX[li];arrY[pi]=arrY[li];arrVX[pi]=arrVX[li];arrVY[pi]=arrVY[li]
                     arrL[pi]=arrL[li];arrD[pi]=arrD[li];arrCR[pi]=arrCR[li];arrCG[pi]=arrCG[li];arrCB[pi]=arrCB[li];arrRad[pi]=arrRad[li]}}else pi++}
@@ -160,6 +158,10 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     // === RENDER ===
     private fun render(c:Canvas){
         c.drawColor(Color.rgb(5,5,16))
+        // Field border
+        paint.style=Paint.Style.STROKE;paint.strokeWidth=max(2f,3f*s)
+        paint.color=Color.argb(80,255,255,255);c.drawRect(0f,0f,W,H,paint)
+        paint.style=Paint.Style.FILL;paint.strokeWidth=0f
         // Grid
         paint.color=Color.argb(20,30,30,80);paint.strokeWidth=1f
         var i=0f;while(i<W){c.drawLine(i,0f,i,H,paint);i+=60f}
