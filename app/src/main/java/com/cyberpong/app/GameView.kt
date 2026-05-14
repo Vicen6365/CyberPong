@@ -55,7 +55,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             .setAudioFormat(AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(sr).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
             .setBufferSizeInBytes((sr*0.3f).toInt()*2).build()}catch(_:Exception){}
         setOnTouchListener{_,e->when(e.action){MotionEvent.ACTION_DOWN->{touchY=e.y
-            if(state==0||state==4){start();true}else if(state==1){serve();true}else false}
+            when(state){0,4->start();1->serve()};true}
         MotionEvent.ACTION_MOVE->{touchY=e.y;true} else->false}}
     }
 
@@ -142,9 +142,9 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             val col=intArrayOf(255,51,102);spawnP(col,6,2f)}
         if(bx-br<0f){aScore++;pls();ap(aScore>=win)}
         if(bx+br>W){pScore++;pls();ap(pScore>=win)}
-        val at=if(bvx>0f) by+((Math.random().toFloat()-0.5f)*max(0.1f,1f-diff/100f)*H*0.15f)
-            else H/2f+((Math.random().toFloat()-0.5f)*H*0.1f)
-        val asp=max(2f,5f+diff/10f)*s;val dd=at-aiY
+        val at=if(bvx>0f) by+((Math.random().toFloat()-0.5f)*max(0.5f,1.5f-diff/60f)*H*0.25f)
+            else H/2f+((Math.random().toFloat()-0.5f)*H*0.15f)
+        val asp=max(2f,3f+diff/25f)*s;val dd=at-aiY
         if(abs(dd)>3f)aiY+=sign(dd)*min(abs(dd),asp)
         aiY=max(aah/2f,min(H.toFloat()-aah/2f,aiY))
         padY=touchY.coerceIn(pph/2f,H.toFloat()-pph/2f)
