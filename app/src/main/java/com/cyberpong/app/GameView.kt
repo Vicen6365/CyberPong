@@ -37,6 +37,7 @@ class GameView(context: Context) : GLSurfaceView(context), GLSurfaceView.Rendere
     private val ri = shortArrayOf(0,1,2, 1,3,2)
     private val rvb = ByteBuffer.allocateDirect(rv.size*4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(rv).also{it.flip()}
     private val rib = ByteBuffer.allocateDirect(ri.size*2).order(ByteOrder.nativeOrder()).asShortBuffer().put(ri).also{it.flip()}
+    private val tBuf = ByteBuffer.allocateDirect(24*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
 
     private var textTex = 0; private var texW = 0; private var texH = 0
     private val fontChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!-.~><O"
@@ -123,12 +124,15 @@ class GameView(context: Context) : GLSurfaceView(context), GLSurfaceView.Rendere
     private var lastUpdate=0L
     override fun onDrawFrame(gl:GL10?){if(W==0||H==0)return;update();GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);draw()}
 
+    private val charU = FloatArray(256){-1f} // UV mapping for ASCII chars
     private fun genFont(){
         val pt=Paint(Paint.ANTI_ALIAS_FLAG).apply{typeface=Typeface.MONOSPACE;isFakeBoldText=true;textSize=48f;color=Color.WHITE}
-        val r=Rect();pt.getTextBounds(fontChars,0,fontChars.length,r)
-        texW=r.width()+4;texH=r.height()+4
-        val bmp=Bitmap.createBitmap(texW,texH,Bitmap.Config.ALPHA_8)
-        val cv=Canvas(bmp);cv.drawColor(Color.TRANSPARENT,PorterDuff.Mode.CLEAR);cv.drawText(fontChars,2f,-r.top.toFloat()+2f,pt)
+        val charAdv=32f // fixed monospace advance at 48px
+        texW=(fontChars.length)*32+4;texH=60
+        val bmp=Bitmap.createBitmap(texW,texH,Bitmap.Config.ARGB_8888)
+        val cv=Canvas(bmp);cv.drawColor(Color.TRANSPARENT,PorterDuff.Mode.CLEAR)
+        // Draw each char at known position
+        fontChars.forEachIndexed{i,c->cv.drawText(c.toString(),2f+i*charAdv,50f,pt);charU[c.code%256]=i.toFloat()}
         val tid=IntArray(1);GLES20.glGenTextures(1,tid,0);textTex=tid[0]
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,textTex)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER,GLES20.GL_LINEAR)
@@ -136,7 +140,7 @@ class GameView(context: Context) : GLSurfaceView(context), GLSurfaceView.Rendere
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_S,GLES20.GL_CLAMP_TO_EDGE)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_T,GLES20.GL_CLAMP_TO_EDGE)
         val buf=ByteBuffer.allocateDirect(bmp.rowBytes*bmp.height);bmp.copyPixelsToBuffer(buf);buf.flip()
-        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D,0,GLES20.GL_ALPHA,texW,texH,0,GLES20.GL_ALPHA,GLES20.GL_UNSIGNED_BYTE,buf);bmp.recycle()
+        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D,0,GLES20.GL_RGBA,texW,texH,0,GLES20.GL_RGBA,GLES20.GL_UNSIGNED_BYTE,buf);bmp.recycle()
     }
 
     // === UPDATE ===
@@ -261,27 +265,19 @@ class GameView(context: Context) : GLSurfaceView(context), GLSurfaceView.Rendere
     }
     private fun drC(x:Float,y:Float,r:Float,cr:Float,cg:Float,cb:Float,ca:Float)=drR(x-r,y-r,r*2f,r*2f,cr,cg,cb,ca)
 
-    // Text rendering with font texture
-    private val tc4=FloatArray(4);private val tBuf=ByteBuffer.allocateDirect(24*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
     private fun drawT(txt:String,x:Float,y:Float,sz:Float,r:Float,g:Float,b:Float,a:Float){
-        if(textTex==0)return;val cw=sz*0.6f;val sx=2f/W;val sy=2f/H
-        val pt=Paint().apply{typeface=Typeface.MONOSPACE;textSize=48f}
+        if(textTex==0)return;val cw=sz*0.6f;val sx=2f/W;val sy=2f/H;val cwTex=32f
         GLES20.glUseProgram(texProg);GLES20.glUniform4f(uTCol,r,g,b,a);GLES20.glUniform1i(uTSam,0)
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,textTex)
         var cx=x
-        for(ch in txt){val idx=fontChars.indexOf(ch);if(idx<0){cx+=cw*0.5f;continue}
-            val cwTex=pt.measureText(ch.toString())
-            val u0=(fontChars.substring(0,idx).let{pt.measureText(it)+2f})/texW.toFloat()
-            val u1=(fontChars.substring(0,idx+1).let{pt.measureText(it)+2f})/texW.toFloat()
-            val v0=0f;val v1=1f
-            val cW2=cw*0.55f;val cH2=sz;val m=floatArrayOf(sx*cW2*0.5f,0f,0f,0f,0f,sy*cH2*0.5f,0f,0f,0f,0f,1f,0f,-1f+sx*cx+sx*cW2*0.5f,-1f+sy*y+sy*cH2*0.5f,0f,1f)
+        for(ch in txt){val ci=if(ch.code<charU.size)charU[ch.code]else-1f;if(ci<0f){cx+=cw*0.5f;continue}
+            val u0=(2f+ci*cwTex)/texW.toFloat();val u1=(2f+(ci+1f)*cwTex)/texW.toFloat()
+            val v0=0f;val v1=1f;val cW2=cw*0.55f;val cH2=sz
+            val m=floatArrayOf(sx*cW2*0.5f,0f,0f,0f,0f,sy*cH2*0.5f,0f,0f,0f,0f,1f,0f,-1f+sx*cx+sx*cW2*0.5f,-1f+sy*y+sy*cH2*0.5f,0f,1f)
             tBuf.clear();val t=tBuf
-            t.put(-1f);t.put(-1f);t.put(u0);t.put(v1)
-            t.put(1f);t.put(-1f);t.put(u1);t.put(v1)
-            t.put(-1f);t.put(1f);t.put(u0);t.put(v0)
-            t.put(1f);t.put(-1f);t.put(u1);t.put(v1)
-            t.put(1f);t.put(1f);t.put(u1);t.put(v0)
-            t.put(-1f);t.put(1f);t.put(u0);t.put(v0)
+            t.put(-1f);t.put(-1f);t.put(u0);t.put(v1);t.put(1f);t.put(-1f);t.put(u1);t.put(v1)
+            t.put(-1f);t.put(1f);t.put(u0);t.put(v0);t.put(1f);t.put(-1f);t.put(u1);t.put(v1)
+            t.put(1f);t.put(1f);t.put(u1);t.put(v0);t.put(-1f);t.put(1f);t.put(u0);t.put(v0)
             t.flip()
             GLES20.glVertexAttribPointer(aTPos,2,GLES20.GL_FLOAT,false,24,t);GLES20.glEnableVertexAttribArray(aTPos)
             t.position(2);GLES20.glVertexAttribPointer(aTTex,2,GLES20.GL_FLOAT,false,24,t);GLES20.glEnableVertexAttribArray(aTTex)
