@@ -429,7 +429,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private fun sleepMs(ms: Long) { try { Thread.sleep(ms) } catch(_: Exception) {} }
 
     private fun playBg(on: Boolean) {
-        if (on && bgTrack == null) try {
+        if (on && bgTrack == null) {
+            try {
             val bufSize = sr * 2
             bgTrack = AudioTrack.Builder()
                 .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME)
@@ -451,6 +452,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                     try { bgTrack?.write(buf,0,buf.size) } catch(_:Exception) { break }
                 }
             }; bgThread!!.start()
+            } catch(_: Exception) {}
         } else if (!on) { bgRun = false; try { bgThread?.join(300); bgTrack?.stop(); bgTrack?.release() } catch(_:Exception){}; bgTrack = null }
     }
 
