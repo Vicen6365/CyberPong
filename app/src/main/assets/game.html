@@ -7,16 +7,25 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center}
-canvas{display:block;background:#050510;width:100%;height:100%}
+canvas{display:block;width:100%;height:100%}
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+<div id="err" style="position:fixed;bottom:0;left:0;right:0;color:#0f0;font:12px monospace;background:rgba(0,0,0,0.8);padding:8px;display:none;z-index:9"></div>
 <script>
 'use strict';
 
 const canvas=document.getElementById('game');
 const ctx=canvas.getContext('2d');
+const errDiv=document.getElementById('err');
+console.log('Cyber Pong init...');
+
+// Error handler
+window.onerror=function(msg,url,line){
+  errDiv.style.display='block';
+  errDiv.textContent='ERR: '+msg+' (line '+line+')';
+};
 
 // ===== RESIZE =====
 let W, H, cx, cy, scale, PADDLE_H, PADDLE_W, BALL_R, HALF_PADDLE, PADDLE_MARGIN, SPEED_BASE;
@@ -486,13 +495,26 @@ function drawGlowText(t,x,y,color,size,align){
   ctx.shadowBlur=0;
 }
 
+function roundRect(ctx,x,y,w,h,r){
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
 function drawNeonRect(x,y,w,h,color,blur){
   ctx.shadowColor=color;
   ctx.shadowBlur=blur||12;
   ctx.fillStyle=color;
   ctx.beginPath();
   const r=Math.min(w,h)*0.2;
-  ctx.roundRect(x,y,w,h,r);
+  roundRect(ctx,x,y,w,h,r);
   ctx.fill();
   ctx.shadowBlur=0;
 }
