@@ -19,10 +19,10 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private var diff=0f; private var rTime=0f; private var apTimer=0f
 
     private var bx=0f; private var by=0f; private var bvx=0f; private var bvy=0f
-    private var trailX=FloatArray(12); private var trailY=FloatArray(12); private var trailL=FloatArray(12)
-    private var trailH=0; private var ballC=0f; private var ballI=false; private var ballS=false
+    private val tX=FloatArray(12); private val tY=FloatArray(12); private val tL=FloatArray(12)
+    private var tH=0; private var ballC=0f; private var ballI=false; private var ballS=false
 
-    private var py=0f; private var ay=0f; private var pg=false; private var am=false
+    private var pY=0f; private var aY=0f; private var pG=false; private var aM=false
     private var puA=false; private var puT=0; private var puX=0f; private var puY=0f; private var puR=0f
     private var cuPU=-1; private var cuTimer=0f; private var spawnPU=0L
 
@@ -30,11 +30,11 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private val puC=intArrayOf(Color.rgb(255,107,53),Color.rgb(57,255,20),Color.rgb(255,0,85),Color.rgb(0,212,255),Color.rgb(170,102,255))
 
     // Particles (pooled arrays)
-    private val px=FloatArray(80); private val py=FloatArray(80)
-    private val pvx=FloatArray(80); private val pvy=FloatArray(80)
-    private val pl=FloatArray(80); private val pd=FloatArray(80)
-    private val pr=IntArray(80); private val pg=IntArray(80); private val pb=IntArray(80)
-    private val prr=FloatArray(80); private var pc=0
+    private val pX=FloatArray(80); private val pY=FloatArray(80)
+    private val pvX=FloatArray(80); private val pvY=FloatArray(80)
+    private val pL=FloatArray(80); private val pD=FloatArray(80)
+    private val pR=IntArray(80); private val pG=IntArray(80); private val pB=IntArray(80)
+    private val pRad=FloatArray(80); private var pCnt=0
 
     private val paint=Paint(Paint.ANTI_ALIAS_FLAG)
     private val tp=Paint(Paint.ANTI_ALIAS_FLAG).apply{typeface=Typeface.MONOSPACE;isFakeBoldText=true;textAlign=Paint.Align.CENTER}
@@ -59,26 +59,26 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         MotionEvent.ACTION_MOVE->{touchY=e.y;true} else->false}}
     }
 
-    private fun rcalc(w:Float,h:Float){W=w;H=h;s=min(w/800f,h/500f)
+    private fun rcalc(w:Float,hh:Float){W=w;H=hh;s=min(w/800f,hh/500f)
         pw=max(8f,12f*s);ph=max(50f,100f*s);br=max(5f,9f*s);pm=max(15f,30f*s);sb=max(3f,6f*s);puR=max(14f,22f*s)}
 
-    private fun start(){state=1;pScore=0;aScore=0;diff=0f;rTime=0f;py=H/2f;ay=H/2f
-        bx=W/2f;by=H/2f;bvx=0f;bvy=0f;trailH=0;pc=0;pg=false;am=false;ballC=0f;ballI=false;ballS=false
+    private fun start(){state=1;pScore=0;aScore=0;diff=0f;rTime=0f;pY=H/2f;aY=H/2f
+        bx=W/2f;by=H/2f;bvx=0f;bvy=0f;tH=0;pCnt=0;pG=false;aM=false;ballC=0f;ballI=false;ballS=false
         puA=false;cuPU=-1;spawnPU=SystemClock.elapsedRealtime()+8000+(Math.random()*4000).toLong();bg(true)}
 
     private fun serve(){state=2;val d=if(Math.random()>0.5)1f else-1f;val a=(Math.random().toFloat()-0.5f)*0.8f;val sp=sb*1.2f
-        bx=W/2f;by=H/2f;bvx=d*cos(a)*sp;bvy=sin(a)*sp
-        if(abs(bvy)<0.3f)bvy=if(bvy>0)0.3f else-0.3f;rTime=0f;diff=0f;trailH=0}
+        bx=W/2f;by=H/2f;bvx=d*cos(a.toDouble()).toFloat()*sp;bvy=sin(a.toDouble()).toFloat()*sp
+        if(abs(bvy)<0.3f)bvy=if(bvy>0)0.3f else-0.3f;rTime=0f;diff=0f;tH=0}
 
     private fun ap(w:Boolean){state=3;apTimer=1.5f;if(w){state=4;plw()};pls()
         val col=if(pScore>aScore) intArrayOf(0,255,204) else intArrayOf(255,51,102)
-        sp(col,20,6f)}
+        spawnP(col,20,6f)}
 
-    private fun sp(col:IntArray,cnt:Int,sm:Float){
-        val n=min(cnt,80-pc)
-        for(i in 0 until n){val a=Math.random().toFloat()*PI.toFloat()*2f;val sp=(Math.random().toFloat()*4f*s+1f*s)*sm
-            px[pc]=bx;py[pc]=by;pvx[pc]=cos(a)*sp;pvy[pc]=sin(a)*sp;pl[pc]=1f;pd[pc]=0.012f+Math.random().toFloat()*0.02f
-            pr[pc]=col[0];pg[pc]=col[1];pb[pc]=col[2];prr[pc]=Math.random().toFloat()*3f*s+1f*s;pc++}}
+    private fun spawnP(col:IntArray,cnt:Int,sm:Float){
+        val n=min(cnt,80-pCnt)
+        for(i in 0 until n){val a=Math.random().toDouble()*PI*2.0;val sp=(Math.random().toFloat()*4f*s+1f*s)*sm
+            pX[pCnt]=bx;pY[pCnt]=by;pvX[pCnt]=(cos(a)*sp).toFloat();pvY[pCnt]=(sin(a)*sp).toFloat();pL[pCnt]=1f;pD[pCnt]=0.012f+Math.random().toFloat()*0.02f
+            pR[pCnt]=col[0];pG[pCnt]=col[1];pB[pCnt]=col[2];pRad[pCnt]=Math.random().toFloat()*3f*s+1f*s;pCnt++}}
 
     private fun genTone(f:Float,d:Float,v:Float):ShortArray{
         val n=(sr*d).toInt();val b=ShortArray(n)
@@ -86,12 +86,12 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             b[i]=(sin(2f*PI*f*t)*Short.MAX_VALUE*v*e).toInt().coerceIn(Short.MIN_VALUE.toInt(),Short.MAX_VALUE.toInt()).toShort()}
         return b}
 
-    private fun pb(b:ShortArray){val idx=sI++ and 3;val at=sAT[idx]?:return
+    private fun playBuf(b:ShortArray){val idx=sI++ and 3;val at=sAT[idx]?:return
         try{at.stop();at.flush();at.write(b,0,b.size);at.play()}catch(_:Exception){}}
-    private fun ph(w:Int){sBuf[w]=genTone(floatArrayOf(880f,660f,440f)[w],0.06f,0.3f);pb(sBuf[w])}
-    private fun pls(){sBuf[3]=genTone(330f,0.15f,0.25f);pb(sBuf[3])}
-    private fun plw(){for(i in 4..7)pb(genTone(floatArrayOf(523f,659f,784f,1047f)[i-4],0.2f,0.3f))}
-    private fun ppu(){for(i in 8..10)pb(genTone(floatArrayOf(1200f,1500f,1800f)[i-8],0.1f,0.25f))}
+    private fun ph(who:Int){sBuf[who]=genTone(floatArrayOf(880f,660f,440f)[who],0.06f,0.3f);playBuf(sBuf[who])}
+    private fun pls(){sBuf[3]=genTone(330f,0.15f,0.25f);playBuf(sBuf[3])}
+    private fun plw(){for(i in 4..7)playBuf(genTone(floatArrayOf(523f,659f,784f,1047f)[i-4],0.2f,0.3f))}
+    private fun ppu(){for(i in 8..10)playBuf(genTone(floatArrayOf(1200f,1500f,1800f)[i-8],0.1f,0.25f))}
 
     private fun bg(on:Boolean){
         if(on&&bAT==null)try{val bs=sr*2
@@ -111,50 +111,50 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private fun update(dt:Float){
         if(state!=2&&state!=3)return
         if(state==3){apTimer-=dt
-            if(apTimer<=0f){state=1;py=H/2f;ay=H/2f;bx=W/2f;by=H/2f;bvx=0f;bvy=0f;trailH=0
-                pg=false;am=false;ballC=0f;ballI=false;ballS=false;cuPU=-1
+            if(apTimer<=0f){state=1;pY=H/2f;aY=H/2f;bx=W/2f;by=H/2f;bvx=0f;bvy=0f;tH=0
+                pG=false;aM=false;ballC=0f;ballI=false;ballS=false;cuPU=-1
                 spawnPU=SystemClock.elapsedRealtime()+6000+(Math.random()*4000).toLong()};return}
         rTime+=dt;diff=min(90f,(rTime/10f)*18f)
         if(!puA&&cuPU<0&&SystemClock.elapsedRealtime()>spawnPU){puT=(Math.random()*puN.size).toInt()
             puX=W/2f+((Math.random().toFloat()-0.5f)*W*0.35f);puY=H/2f+((Math.random().toFloat()-0.5f)*H*0.25f);puA=true
             spawnPU=SystemClock.elapsedRealtime()+8000+(Math.random()*4000).toLong()}
         if(cuPU>=0){cuTimer-=dt
-            if(cuTimer<=0f){when(cuPU){1->pg=false;2->am=false;3->ballS=false;4->ballI=false;0->ballC=0f};cuPU=-1}}
+            if(cuTimer<=0f){when(cuPU){1->pG=false;2->aM=false;3->ballS=false;4->ballI=false;0->ballC=0f};cuPU=-1}}
         val sm=if(ballS)0.4f else 1f;bx+=bvx*sm;by+=bvy*sm
         if(ballC!=0f)by+=ballC*0.15f*s*sm
-        trailX[trailH%12]=bx;trailY[trailH%12]=by;trailL[trailH%12]=1f;trailH++
+        tX[tH%12]=bx;tY[tH%12]=by;tL[tH%12]=1f;tH++
         if(by-br<0f){by=br;bvy=-bvy;ph(2)}
         if(by+br>H){by=H.toFloat()-br;bvy=-bvy;ph(2)}
         if(puA){val dx=bx-puX;val dy=by-puY
             if(dx*dx+dy*dy<(br+puR).pow(2)){puA=false;ppu();cuPU=puT;cuTimer=5f
-                val col=intArrayOf(255,255,0);sp(col,10,2f)
+                val col=intArrayOf(255,255,0);spawnP(col,10,2f)
                 val sd=if(bvx>0f)1 else 0
-                when(puT){0->if(sd==0)ballC=if(Math.random()>0.5)1f else-1f;1->if(sd==0)pg=true;2->if(sd==1)am=true;3->if(sd==0)ballS=true;4->if(sd==0)ballI=true}}}
-        val pph=if(pg)ph*2f else ph
-        if(bx-pm-pw/2f<=br&&bx+br>=pm-pw/2f&&by+br>py-pph/2f&&by-br<py+pph/2f&&bvx<0f){
-            val hp=(by-py)/(pph/2f);val ang=hp*PI.toFloat()/3f;val spd=sqrt(bvx*bvx+bvy*bvy)*1.03f
-            bvx=cos(ang)*spd;bvy=sin(ang)*spd;bx=pm+pw/2f+br+1f;ballC=0f;ph(0)
-            val col=intArrayOf(0,255,204);sp(col,6,2f)}
-        val aah=if(am)ph*0.5f else ph
-        if(bx+br>=W.toFloat()-pm-pw/2f&&bx-br<=W.toFloat()-pm+pw/2f&&by+br>ay-aah/2f&&by-br<ay+aah/2f&&bvx>0f){
-            val hp=(by-ay)/(aah/2f);val ang=hp*PI.toFloat()/3f;val spd=sqrt(bvx*bvx+bvy*bvy)*1.03f
-            bvx=-cos(ang)*spd;bvy=sin(ang)*spd;bx=W.toFloat()-pm-pw/2f-br-1f;ph(1)
-            val col=intArrayOf(255,51,102);sp(col,6,2f)}
+                when(puT){0->if(sd==0)ballC=if(Math.random()>0.5)1f else-1f;1->if(sd==0)pG=true;2->if(sd==1)aM=true;3->if(sd==0)ballS=true;4->if(sd==0)ballI=true}}}
+        val pph=if(pG)ph*2f else ph
+        if(bx-pm-pw/2f<=br&&bx+br>=pm-pw/2f&&by+br>pY-pph/2f&&by-br<pY+pph/2f&&bvx<0f){
+            val hp=(by-pY)/(pph/2f);val ang=hp*PI/3.0;val spd=sqrt((bvx*bvx+bvy*bvy).toDouble()).toFloat()*1.03f
+            bvx=cos(ang).toFloat()*spd;bvy=sin(ang).toFloat()*spd;bx=pm+pw/2f+br+1f;ballC=0f;ph(0)
+            val col=intArrayOf(0,255,204);spawnP(col,6,2f)}
+        val aah=if(aM)ph*0.5f else ph
+        if(bx+br>=W.toFloat()-pm-pw/2f&&bx-br<=W.toFloat()-pm+pw/2f&&by+br>aY-aah/2f&&by-br<aY+aah/2f&&bvx>0f){
+            val hp=(by-aY)/(aah/2f);val ang=hp*PI/3.0;val spd=sqrt((bvx*bvx+bvy*bvy).toDouble()).toFloat()*1.03f
+            bvx=-cos(ang).toFloat()*spd;bvy=sin(ang).toFloat()*spd;bx=W.toFloat()-pm-pw/2f-br-1f;ph(1)
+            val col=intArrayOf(255,51,102);spawnP(col,6,2f)}
         if(bx-br<0f){aScore++;pls();ap(aScore>=win)}
         if(bx+br>W){pScore++;pls();ap(pScore>=win)}
         val at=if(bvx>0f) by+((Math.random().toFloat()-0.5f)*max(0.1f,1f-diff/100f)*H*0.15f)
             else H/2f+((Math.random().toFloat()-0.5f)*H*0.1f)
-        val asp=max(2f,5f+diff/10f)*s;val dd=at-ay
-        if(abs(dd)>3f)ay+=sign(dd)*min(abs(dd),asp)
-        ay=max(aah/2f,min(H.toFloat()-aah/2f,ay))
-        val psp=max(3f,8f*s);val pd=touchY-py
-        if(abs(pd)>2f)py+=sign(pd)*min(abs(pd),psp)
-        py=max(pph/2f,min(H.toFloat()-pph/2f,py))
-        var pi=0;while(pi<pc){px[pi]+=pvx[pi];py[pi]+=pvy[pi];pl[pi]-=pd[pi]
-            if(pl[pi]<=0f){pc--;if(pi<pc){val li=pc;px[pi]=px[li];py[pi]=py[li];pvx[pi]=pvx[li];pvy[pi]=pvy[li]
-                    pl[pi]=pl[li];pd[pi]=pd[li];pr[pi]=pr[li];pg[pi]=pg[li];pb[pi]=pb[li];prr[pi]=prr[li]}}else pi++}
+        val asp=max(2f,5f+diff/10f)*s;val dd=at-aY
+        if(abs(dd)>3f)aY+=sign(dd)*min(abs(dd),asp)
+        aY=max(aah/2f,min(H.toFloat()-aah/2f,aY))
+        val psp=max(3f,8f*s);val pd=touchY-pY
+        if(abs(pd)>2f)pY+=sign(pd)*min(abs(pd),psp)
+        pY=max(pph/2f,min(H.toFloat()-pph/2f,pY))
+        var pi=0;while(pi<pCnt){pX[pi]+=pvX[pi];pY[pi]+=pvY[pi];pL[pi]-=pD[pi]
+            if(pL[pi]<=0f){pCnt--;if(pi<pCnt){val li=pCnt;pX[pi]=pX[li];pY[pi]=pY[li];pvX[pi]=pvX[li];pvY[pi]=pvY[li]
+                    pL[pi]=pL[li];pD[pi]=pD[li];pR[pi]=pR[li];pG[pi]=pG[li];pB[pi]=pB[li];pRad[pi]=pRad[li]}}else pi++}
         // Decay trail
-        for(i in 0 until min(trailH,12))trailL[i]*=0.92f
+        for(i in 0 until min(tH,12))tL[i]*=0.92f
     }
 
     // === RENDER ===
@@ -173,33 +173,33 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         tp.color=Color.rgb(200,40,80)
         c.drawText(aScore.toString(),W/2f+80f,55f,tp)
         // Trail
-        val th=min(trailH,12)
-        for(j in 0 until th){val ti=(trailH-1-j)%12;val l=max(0f,trailL[ti])
+        val th=min(tH,12)
+        for(j in 0 until th){val ti=(tH-1-j)%12;val l=max(0f,tL[ti])
             val alpha=(l*80f).toInt().coerceIn(0,80)
-            paint.color=Color.argb(alpha,255,255,255);c.drawCircle(trailX[ti],trailY[ti],br*l*0.6f,paint)}
+            paint.color=Color.argb(alpha,255,255,255);c.drawCircle(tX[ti],tY[ti],br*l*0.6f,paint)}
         // Ball
         if(!ballI||state!=2){
             paint.color=Color.argb(50,200,200,255);c.drawCircle(bx,by,br*1.5f,paint)
             paint.color=Color.WHITE;c.drawCircle(bx,by,br*0.8f,paint)
         }
         // Paddles
-        val pph=if(pg)ph*2f else ph;val aah=if(am)ph*0.5f else ph
-        nrRect(c,pm-pw/2f,py-pph/2f,pw,pph,Color.rgb(0,200,160))
-        nrRect(c,W-pm-pw/2f,ay-aah/2f,pw,aah,Color.rgb(200,40,80))
+        val pph=if(pG)ph*2f else ph;val aah=if(aM)ph*0.5f else ph
+        nrRect(c,pm-pw/2f,pY-pph/2f,pw,pph,Color.rgb(0,200,160))
+        nrRect(c,W-pm-pw/2f,aY-aah/2f,pw,aah,Color.rgb(200,40,80))
         // Particles
-        for(pi in 0 until pc){
-            val a=(max(0f,pl[pi])*200f).toInt().coerceIn(0,200)
-            paint.alpha=a;paint.color=Color.rgb(pr[pi],pg[pi],pb[pi])
-            c.drawCircle(px[pi],py[pi],prr[pi],paint)}
+        for(pi in 0 until pCnt){
+            val al=(max(0f,pL[pi])*200f).toInt().coerceIn(0,200)
+            paint.alpha=al;paint.color=Color.rgb(pR[pi],pG[pi],pB[pi])
+            c.drawCircle(pX[pi],pY[pi],pRad[pi],paint)}
         paint.alpha=255
         // PU
-        if(puA){val pl=1f+sin(SystemClock.elapsedRealtime()/200f)*0.15f
+        if(puA){val pl=1f+sin(SystemClock.elapsedRealtime()/200.0).toFloat()*0.15f
             paint.color=puC[puT];paint.alpha=40;c.drawCircle(puX,puY,puR*pl*1.3f,paint)
             paint.alpha=200;c.drawCircle(puX,puY,puR*pl*0.8f,paint);paint.alpha=255
             tp.textSize=puR*pl*0.7f;tp.color=Color.WHITE
             c.drawText(puN[puT].take(1),puX,puY+puR*pl*0.35f,tp)}
-        if(cuPU>=0){val ci=cuPU;val a=(128+(sin(SystemClock.elapsedRealtime()/300f)*0.3f*127f).toInt()).coerceIn(0,255)
-            tp.textSize=14f*s;tp.color=Color.argb(a,Color.red(puC[ci]),Color.green(puC[ci]),Color.blue(puC[ci]))
+        if(cuPU>=0){val ci=cuPU;val al=(128+(sin(SystemClock.elapsedRealtime()/300.0)*0.3f*127f).toInt()).coerceIn(0,255)
+            tp.textSize=14f*s;tp.color=Color.argb(al,Color.red(puC[ci]),Color.green(puC[ci]),Color.blue(puC[ci]))
             c.drawText("${puN[ci]} ${ceil(cuTimer).toInt()}s",W/2f,H/2f+70f,tp)}
         // Title
         if(state==0){tp.textSize=min(52f,52f*s);tp.color=Color.rgb(0,255,204)
@@ -209,12 +209,12 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         // Serving
         if(state==1){tp.textSize=min(18f,20f*s);tp.color=Color.argb(200,0,255,204)
             c.drawText("TAP TO SERVE",W/2f,240f,tp)
-            by=H/2f+sin(SystemClock.elapsedRealtime()/300f)*15f;bx=W/2f
+            by=H/2f+sin(SystemClock.elapsedRealtime()/300.0).toFloat()*15f;bx=W/2f
             paint.color=Color.argb(50,200,200,255);c.drawCircle(bx,by,br*1.5f,paint)
             paint.color=Color.WHITE;c.drawCircle(bx,by,br*0.8f,paint)}
         // Game over
         if(state==4){c.drawColor(Color.argb(150,0,0,0))
-            val w=pScore>=win;val clr=if(w)Color.rgb(0,255,204)else Color.rgb(255,51,102)
+            val w=pScore>=7;val clr=if(w)Color.rgb(0,255,204)else Color.rgb(255,51,102)
             tp.textSize=min(42f,42f*s);tp.color=clr
             c.drawText(if(w)"YOU WIN!"else"YOU LOSE",W/2f,150f,tp)
             tp.textSize=min(28f,28f*s);tp.color=Color.WHITE
@@ -227,20 +227,20 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 c.drawText("\u25B6".repeat(bars),W/2f,H.toFloat()-10f,tp)}}
     }
 
-    private fun nrRect(c:Canvas,x:Float,y:Float,w:Float,h:Float,col:Int){
-        paint.color=col;paint.alpha=20;c.drawRoundRect(x-3f,y-3f,x+w+3f,y+h+3f,min(w,h)*0.2f,min(w,h)*0.2f,paint)
-        paint.alpha=200;c.drawRoundRect(x,y,x+w,y+h,min(w,h)*0.2f,min(w,h)*0.2f,paint);paint.alpha=255
+    private fun nrRect(c:Canvas,x:Float,y:Float,w:Float,hh:Float,col:Int){
+        paint.color=col;paint.alpha=20;c.drawRoundRect(x-3f,y-3f,x+w+3f,y+hh+3f,min(w,hh)*0.2f,min(w,hh)*0.2f,paint)
+        paint.alpha=200;c.drawRoundRect(x,y,x+w,y+hh,min(w,hh)*0.2f,min(w,hh)*0.2f,paint);paint.alpha=255
     }
 
     // === SURFACE ===
-    override fun surfaceCreated(h:SurfaceHolder){rcalc(width.toFloat(),height.toFloat());running=true
+    override fun surfaceCreated(sh:SurfaceHolder){rcalc(width.toFloat(),height.toFloat());running=true
         loop=Thread{var lt=SystemClock.elapsedRealtime()
             while(running){val now=SystemClock.elapsedRealtime();val dt=min((now-lt)/1000f,0.05f);lt=now
-                update(dt);h.lockCanvas()?.let{c->try{render(c)}finally{h.unlockCanvasAndPost(c)}}
+                update(dt);sh.lockCanvas()?.let{cv->try{render(cv)}finally{sh.unlockCanvasAndPost(cv)}}
                 val e=SystemClock.elapsedRealtime()-now;if(e<16)try{Thread.sleep(16-e)}catch(_:Exception){}}}
         loop?.start()}
-    override fun surfaceChanged(h:SurfaceHolder,f:Int,w:Int,h:Int){rcalc(w.toFloat(),h.toFloat())}
-    override fun surfaceDestroyed(h:SurfaceHolder){running=false;bRun=false
+    override fun surfaceChanged(sh:SurfaceHolder,fmt:Int,w:Int,hh:Int){rcalc(w.toFloat(),hh.toFloat())}
+    override fun surfaceDestroyed(sh:SurfaceHolder){running=false;bRun=false
         try{bTh?.join(300);bAT?.release()}catch(_:Exception){};bAT=null}
 
     override fun onDetachedFromWindow(){super.onDetachedFromWindow()
