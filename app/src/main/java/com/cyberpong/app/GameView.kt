@@ -228,10 +228,9 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         if (ball.x - br < 0f) { aiScore++; playScore(); afterPoint(aiScore >= winScore) }
         if (ball.x + br > W) { playerScore++; playScore(); afterPoint(playerScore >= winScore) }
 
-        // AI
-        val dir = if (ball.vx > 0f) 1 else -1
-        if (dir < 0) {
-            val off = (1f - difficulty / 100f) * H * 0.15f
+        // AI - track ball when moving toward AI paddle (right side)
+        if (ball.vx > 0f) {
+            val off = max(0.1f, 1f - difficulty / 100f) * H * 0.15f
             aiTargetY = ball.y + ((Math.random().toFloat() - 0.5f) * off)
         } else aiTargetY = H/2f + ((Math.random().toFloat() - 0.5f) * H * 0.1f)
         val maxSpd = max(2f, 5f + difficulty / 10f) * s
